@@ -69,8 +69,12 @@ class QuantumResource:
         return "mock"
 
     def status(self):
-        if (os.getenv("SCENARIO") == "offline_second"
-                and self.name == "resource_b"):
+        scenario = os.getenv("SCENARIO")
+        if scenario == "offline_all":
+            return Status("offline")
+        if scenario == "offline_first" and self.name == "resource_a":
+            return Status("offline")
+        if scenario == "offline_second" and self.name == "resource_b":
             return Status("offline")
         return Status(ResourceStatusCode.Online)
 
@@ -131,11 +135,27 @@ class QuantumResource:
 
         print("\\nOffline second resource:", result.returncode, events)
 
-        self.assertEqual(result.returncode, 99)
-        self.assertIn("acquire:resource_a", events)
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(events, [
+            "acquire:resource_a",
+            "release:resource_a",
+        ])
 
-        # Expected safe behavior; likely fails on current upstream.
-        self.assertIn("release:resource_a", events)
+    def test_offline_first_resource(self):
+        result, events = self.run_scenario("offline_first")
+
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(events, [
+            "acquire:resource_b",
+            "release:resource_b",
+        ])
+
+    def test_all_resources_offline(self):
+        result, events = self.run_scenario("offline_all")
+
+        self.assertEqual(result.returncode, 99)
+        self.assertEqual(events, [])
+        self.assertIn("No specified quantum resources", result.stderr)
 
     def test_first_release_failure(self):
         result, events = self.run_scenario("release_failure")

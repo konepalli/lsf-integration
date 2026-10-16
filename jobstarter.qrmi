@@ -108,8 +108,8 @@ try:
                     # activities. Put it back on the queue. Note that
                     # the 99 exit code must be defined in lsb.queues
                     # (REQUEUE_EXIT_VALUES)
-                        print_debug(f"{name} is inaccessible. Ignored.")
-                        raise SystemExit(99)
+                        print_debug(f"{name} is inaccessible. Trying next resource.")
+                        continue
                     acquire_token(qrmi)
                     acquired_resources[name] = qrmi
                     managed_resources[qrmi.resource_id()] = cfg["type"]
@@ -117,8 +117,11 @@ try:
                     print_error(f"Failed to process request in QRMI for {name}: {re}")
 
         if len(managed_resources) == 0:
-            print_error(f"No specified quantum resources ({resources}) are available")
-            exit(1)
+            print(
+                f"No specified quantum resources ({resources}) are available",
+                file=sys.stderr,
+            )
+            raise SystemExit(99)
 
         # Expose allocated quantum resources to the QRMI job.
         #
